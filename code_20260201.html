@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开奖数字验证器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .digit-item {
+            width: 40px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 8px;
+            background: #f5f5f5;
+            margin: 0 4px;
+        }
+        .trigger-tag {
+            background: #ffecec;
+            color: #e53e3e;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 0 2px;
+        }
+        .history-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 p-4 flex flex-col items-center">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-2xl font-bold text-center mb-2">开奖数字验证器</h2>
+        <p class="text-gray-500 text-center mb-6">自动获取开奖号并验证组合</p>
+
+        <!-- API数据区 -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-gray-600">开奖数据</span>
+                <button id="refreshBtn" class="bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+                    </svg>
+                    刷新开奖号
+                </button>
+            </div>
+            <p class="text-sm text-gray-500">自动从API获取最新开奖号，提取5位数字进行验证</p>
+        </div>
+
+        <!-- 当前开奖数字+后四和值（横向显示） -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-600">当前开奖号</span>
+                <div class="text-sm">
+                    <span class="text-gray-500">后四和值：</span>
+                    <span id="lastFourSum" class="font-medium text-blue-600">25</span>
+                </div>
+            </div>
+            <div class="flex justify-center gap-2" id="digitList">
+                <!-- 数字动态生成（横向） -->
+            </div>
+        </div>
+
+        <!-- 验证结果区（默认隐藏） -->
+        <div id="resultBox" class="hidden mb-6">
+            <!-- 结果图标（叉/勾） -->
+            <div class="text-center mb-4" id="resultIcon">
+                <!-- 动态插入图标 -->
+            </div>
+            <!-- 触发条件（仅触发时显示） -->
+            <div id="triggerArea" class="hidden bg-pink-50 border border-pink-200 rounded-lg p-3 mb-4">
+                <p class="text-pink-700 font-medium mb-1">触发条件：</p>
+                <p class="text-pink-600" id="triggerText"><span class="font-medium">• 顺子（3个及以上连续数字）</span></p>
+                <p class="text-pink-600 text-sm mt-1">触发组合：</p>
+                <div id="triggerCombos" class="flex flex-wrap gap-2">
+                    <span class="trigger-tag">789</span>
+                </div>
+            </div>
+            <!-- 验证规则 -->
+            <div class="bg-gray-50 rounded-lg p-3">
+                <p class="text-gray-700 font-medium mb-2">验证规则：</p>
+                <ul class="text-gray-600 text-sm space-y-1">
+                    <li>• 3个及以上连续数字（不看顺序，如18179中的789）</li>
+                    <li>• 3个及以上重复数字（不看顺序，如18171中的111）</li>
+                    <li>• 两对相同数字（不看顺序，如11828中的11、88）</li>
+                    <li>• 两组三位数和为10/20的组合（不看顺序）</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 历史数据区 -->
+        <div class="mt-8">
+            <h3 class="text-lg font-bold text-gray-800 mb-3">历史开奖记录</h3>
+            <div id="historyList" class="max-h-60 overflow-y-auto">
+                <!-- 历史记录动态生成 -->
+                <div class="history-item text-center text-gray-500">暂无历史记录</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://qqtj666.com/api/trial/draw-result?code=trxbhffc&rows=1";
+        let currentDigits = []; // 当前5位开奖数字
+        let historyData = []; // 历史记录（最多保存10条）
+
+        // 1. 从API获取开奖号并提取5位数字
+        async function fetchDrawResult() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                if (data.code === 0 && data.data.length > 0) {
+                    // 提取drawResult里的5位数字（如"5,2,3,1,7" → ["5","2","3","1","7"]）
+                    const drawResult = data.data[0].drawResult;
+                    currentDigits = drawResult.split(',').filter(n => /\d/.test(n)).slice(0, 5);
+                    return true;
+                }
+                return false;
+            } catch (err) {
+                console.error('API请求失败：', err);
+                alert('获取开奖号失败，请重试');
+                return false;
+            }
+        }
+
+        // 2. 计算后四数字的和值
+        function calcLastFourSum() {
+            if (currentDigits.length < 4) return 0;
+            const lastFour = currentDigits.slice(1).map(n => parseInt(n));
+            return lastFour.reduce((a, b) => a + b, 0);
+        }
+
+        // 3. 渲染当前开奖数字（横向）和后四和值
+        function renderDigitsAndSum() {
+            const digitList = document.getElementById('digitList');
+            digitList.innerHTML = '';
+            currentDigits.forEach(num => {
+                const div = document.createElement('div');
+                div.className = 'digit-item';
+                div.textContent = num;
+                digitList.appendChild(div);
+            });
+            // 更新后四和值
+            document.getElementById('lastFourSum').textContent = calcLastFourSum();
+        }
+
+        // 4. 核心：所有规则都不看顺序的验证逻辑
+        function validateDigits() {
+            const numArr = currentDigits.map(n => parseInt(n));
+            const sortedNums = [...numArr].sort((a, b) => a - b); // 排序后用于检测顺子
+            let result = { 
+                pass: true, 
+                trigger: '', 
+                combos: [] 
+            };
+
+            // 规则1：3个及以上连续数字（不看顺序）
+            let maxSeq = 1;
+            let currentSeq = 1;
+            let seqCombos = [];
+            for (let i = 1; i < sortedNums.length; i++) {
+                if (sortedNums[i] === sortedNums[i-1] + 1) {
+                    currentSeq++;
+                    if (currentSeq >= 3) {
+                        // 提取当前连续的数字组合
+                        const combo = sortedNums.slice(i - currentSeq + 1, i + 1).join('');
+                        if (!seqCombos.includes(combo)) seqCombos.push(combo);
+                    }
+                    maxSeq = Math.max(maxSeq, currentSeq);
+                } else {
+                    currentSeq = 1;
+                }
+            }
+            if (maxSeq >= 3) {
+                result.pass = false;
+                result.trigger = '顺子（3个及以上连续数字）';
+                result.combos = seqCombos;
+                return result;
+            }
+
+            // 规则2：3个及以上重复数字（不看顺序）
+            const countMap = {};
+            numArr.forEach(n => countMap[n] = (countMap[n] || 0) + 1);
+            const repeatNums = Object.keys(countMap).filter(k => countMap[k] >= 3);
+            if (repeatNums.length > 0) {
+                result.pass = false;
+                result.trigger = '3个及以上重复数字';
+                result.combos = repeatNums.map(n => n.repeat(3));
+                return result;
+            }
+
+            // 规则3：两对相同数字（不看顺序）
+            const pairNums = Object.keys(countMap).filter(k => countMap[k] >= 2);
+            if (pairNums.length >= 2) {
+                result.pass = false;
+                result.trigger = '两对相同数字';
+                result.combos = pairNums.map(n => n.repeat(2));
+                return result;
+            }
+
+            // 规则4：两组三位数和为10/20（不看顺序）
+            const allTriples = [];
+            const tripleSums = [];
+            // 生成所有三位数组合（不看顺序）
+            for (let i = 0; i < 5; i++) {
+                for (let j = i+1; j < 5; j++) {
+                    for (let k = j+1; k < 5; k++) {
+                        const triple = [numArr[i], numArr[j], numArr[k]];
+                        const sum = triple.reduce((a,b)=>a+b, 0);
+                        if (sum === 10 || sum === 20) {
+                            // 保存组合（排序后去重）
+                            const sortedTriple = triple.sort((a,b)=>a-b).join('');
+                            if (!allTriples.includes(sortedTriple)) {
+                                allTriples.push(sortedTriple);
+                                tripleSums.push(`${sortedTriple}=${sum}`);
+                            }
+                        }
+                    }
+                }
+            }
+            if (allTriples.length >= 2) {
+                result.pass = false;
+                result.trigger = '两组三位数和为10/20';
+                result.combos = tripleSums;
+                return result;
+            }
+
+            return result;
+        }
+
+        // 5. 展示验证结果
+        function showValidationResult(validateRes) {
+            const resultBox = document.getElementById('resultBox');
+            const resultIcon = document.getElementById('resultIcon');
+            const triggerArea = document.getElementById('triggerArea');
+            const triggerText = document.getElementById('triggerText');
+            const triggerCombos = document.getElementById('triggerCombos');
+
+            // 显示结果容器
+            resultBox.classList.remove('hidden');
+            
+            // 插入结果图标（叉/勾）
+            if (validateRes.pass) {
+                resultIcon.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="#22c55e" viewBox="0 0 16 16">
+                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                    </svg>
+                `;
+                triggerArea.classList.add('hidden'); // 隐藏触发条件
+            } else {
+                resultIcon.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="#e53e3e" viewBox="0 0 16 16">
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                `;
+                // 显示并更新触发条件
+                triggerArea.classList.remove('hidden');
+                triggerText.innerHTML = `<span class="font-medium">• ${validateRes.trigger}</span>`;
+                // 渲染触发组合
+                triggerCombos.innerHTML = '';
+                validateRes.combos.forEach(combo => {
+                    const span = document.createElement('span');
+                    span.className = 'trigger-tag';
+                    span.textContent = combo;
+                    triggerCombos.appendChild(span);
+                });
+            }
+        }
+
+        // 6. 保存并渲染历史记录
+        function saveAndRenderHistory(validateRes) {
+            const lastFourSum = calcLastFourSum();
+            // 构造历史记录项
+            const historyItem = {
+                digits: currentDigits.join(' '),
+                sum: lastFourSum,
+                result: validateRes.pass ? '✅' : '❌'
+            };
+            // 加入历史记录（最多10条）
+            historyData.unshift(historyItem);
+            if (historyData.length > 10) historyData.pop();
+            // 渲染历史记录
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            historyData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item flex justify-between items-center';
+                div.innerHTML = `
+                    <span class="font-medium">${item.digits}</span>
+                    <span>和值：${item.sum}</span>
+                    <span>${item.result}</span>
+                `;
+                historyList.appendChild(div);
+            });
+        }
+
+        // 7. 初始化+刷新按钮事件
+        async function init() {
+            const success = await fetchDrawResult();
+            if (success) {
+                renderDigitsAndSum();
+                const validateRes = validateDigits();
+                showValidationResult(validateRes);
+                saveAndRenderHistory(validateRes);
+            }
+        }
+        // 页面加载时初始化
+        window.onload = init;
+        // 刷新按钮点击事件
+        document.getElementById('refreshBtn').addEventListener('click', init);
+    </script>
+</body>
+</html>
