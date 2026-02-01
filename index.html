@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>开奖数字验证器</title>
+    <title>开奖数字验证器（清晰背景+时间期号版）</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 二次元背景样式（使用你提供的图片） */
+        /* 背景优化：取消过度虚化，保留轻微通透感，不影响使用 */
         body {
-            background: url('https://i.imgur.com/xxxxxx.jpg') no-repeat center center fixed; /* 替换为图片的实际URL（需先上传图片到图床） */
+            background: url('https://youke.xn--y7xa690gmna.cn/s1/2026/02/01/697ef865dbe34.webp') no-repeat center center fixed;
             background-size: cover;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(2px); /* 虚化从10px减为2px，清晰可见背景 */
         }
         .digit-item {
             width: 40px;
@@ -21,9 +21,9 @@
             font-size: 1.2em;
             font-weight: bold;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95); /* 数字卡片更不透明，突出显示 */
             margin: 0 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
         .trigger-tag {
             background: #ffecec;
@@ -35,11 +35,11 @@
         }
         .history-item {
             padding: 8px 0;
-            border-bottom: 1px solid rgba(240, 240, 240, 0.5);
+            border-bottom: 1px solid rgba(240, 240, 240, 0.7);
             transition: background 0.2s;
         }
         .history-item:hover {
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.8); /* hover背景更清晰 */
         }
         /* 作者信息样式 */
         .author-info {
@@ -48,18 +48,67 @@
             font-size: 0.9em;
             margin-top: 20px;
             padding-top: 10px;
-            border-top: 1px solid rgba(240, 240, 240, 0.5);
+            border-top: 1px solid rgba(240, 240, 240, 0.7);
         }
-        /* 卡片美化 */
+        /* 卡片美化：增强不透明度，避免背景干扰 */
         .card {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.92); /* 主卡片不透明度提升 */
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px);
+        }
+        /* 北京时间美化样式 */
+        .time-container {
+            background: linear-gradient(135deg, #fef7fb 0%, #fcf1f7 100%);
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 6px rgba(236, 72, 153, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .time-icon {
+            color: #ec4899;
+            font-size: 1.2em;
+        }
+        .time-text {
+            font-size: 1.05em;
+            font-weight: 500;
+            color: #2d3748;
+            letter-spacing: 0.5px;
+        }
+        /* 自动刷新提示 */
+        .refresh-tip {
+            font-size: 0.85em;
+            color: #666;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        /* 时间格式期号样式：突出显示，区分度高 */
+        .period-number {
+            color: #2563eb; /* 蓝色期号，醒目不刺眼 */
+            font-weight: 600;
+            min-width: 120px; /* 预留足够宽度，避免换行 */
+            text-align: center;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+        /* API数据区/结果区背景：增强不透明度 */
+        .bg-white\/70 {
+            background: rgba(255, 255, 255, 0.9);
         }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center">
+    <!-- 顶部：北京时间+自动刷新提示 -->
+    <div class="w-full max-w-md mb-3 flex justify-between items-center">
+        <div class="time-container">
+            <span class="time-icon">⏰</span>
+            <span class="time-text" id="beijingTime">加载中...</span>
+        </div>
+        <div class="refresh-tip">自动刷新：2秒/次</div>
+    </div>
+
     <!-- 主容器 -->
     <div class="w-full max-w-md card p-6">
         <h2 class="text-2xl font-bold text-center mb-2 text-pink-600">开奖数字验证器</h2>
@@ -74,7 +123,7 @@
                         <path d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
                         <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
                     </svg>
-                    刷新开奖号
+                    手动刷新
                 </button>
             </div>
             <p class="text-sm text-gray-500">自动从API获取最新开奖号，提取5位数字进行验证</p>
@@ -121,9 +170,9 @@
             </div>
         </div>
 
-        <!-- 历史数据区（100期） -->
+        <!-- 历史数据区（1000期，时间期号+去重） -->
         <div class="mt-8">
-            <h3 class="text-lg font-bold text-gray-800 mb-3 text-center">历史开奖记录（100期）</h3>
+            <h3 class="text-lg font-bold text-gray-800 mb-3 text-center">历史开奖记录（1000期，无重复）</h3>
             <div id="historyList" class="max-h-80 overflow-y-auto bg-white/70 rounded-lg p-3">
                 <div class="history-item text-center text-gray-500">加载中...</div>
             </div>
@@ -138,9 +187,42 @@
     <script>
         const LATEST_API = "https://qqtj666.com/api/trial/draw-result?code=trxbhffc&rows=1";
         let currentDigits = []; // 当前5位开奖数字
-        let historyData = []; // 历史记录（100期）
+        let historyData = JSON.parse(localStorage.getItem('drawHistory')) || []; // 历史记录：本地持久化
+        const MAX_HISTORY = 1000; // 历史记录上限1000期
+        const REFRESH_INTERVAL = 2000; // 自动刷新间隔2秒
 
-        // 1. 获取最新开奖号
+        // 北京时间显示（带秒）
+        function updateBeijingTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('beijingTime').innerText = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+        setInterval(updateBeijingTime, 1000);
+        updateBeijingTime(); // 初始化
+
+        // 新增：生成时间格式期号（年月日时分，如202602010305）
+        function generateTimePeriod() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}${month}${day}${hours}${minutes}`;
+        }
+
+        // 判断开奖数字是否重复（根据5位数字组合去重）
+        function isDuplicateDigit(digits) {
+            const digitStr = digits.join('');
+            return historyData.some(item => item.digitStr === digitStr);
+        }
+
+        // 1. 获取最新开奖号（去重+时间期号）
         async function fetchLatestDraw() {
             try {
                 const res = await fetch(LATEST_API);
@@ -148,40 +230,72 @@
                 if (data.code === 0 && data.data.length > 0) {
                     const drawResult = data.data[0].drawResult;
                     currentDigits = drawResult.split(',').filter(n => /\d/.test(n)).slice(0, 5);
+                    // 去重：重复则不添加到历史
+                    if (!isDuplicateDigit(currentDigits)) {
+                        addToHistory(currentDigits);
+                    }
                     return true;
                 }
                 return false;
             } catch (err) {
                 console.error('最新开奖API请求失败：', err);
-                alert('获取最新开奖号失败，请重试');
                 return false;
             }
         }
 
-        // 2. 获取100期历史开奖数据（修复跨域+分页）
+        // 2. 存入历史（时间格式期号+去重）
+        function addToHistory(digits) {
+            const digitStr = digits.join('');
+            const period = generateTimePeriod(); // 期号=年月日时分（如202602010305）
+            const lastFourSum = digits.slice(1).map(n => parseInt(n)).reduce((a,b)=>a+b, 0);
+            const validateRes = validateDigits(digits);
+            const historyItem = {
+                period: period, // 时间格式期号
+                digitStr: digitStr, // 用于去重的数字字符串
+                digits: digits.join(' '),
+                sum: lastFourSum,
+                result: validateRes.pass ? '✅' : '❌',
+                time: new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})
+            };
+            // 满1000期删除最早1期
+            if (historyData.length >= MAX_HISTORY) {
+                historyData.shift();
+            }
+            historyData.unshift(historyItem); // 最新的放最前面
+            localStorage.setItem('drawHistory', JSON.stringify(historyData));
+        }
+
+        // 3. 兼容原历史API，补充至1000期（去重+补时间期号）
         async function fetchHistoryDraw() {
             try {
-                historyData = [];
-                // 分页获取100期（每页10条，取10页）
-                for (let page = 1; page <= 10; page++) {
+                // 本地已有历史，直接用，无则从API拉取
+                if (historyData.length > 0) return true;
+                // 分页拉取（最多补至1000期）
+                for (let page = 1; page <= 100; page++) {
                     const res = await fetch(`https://qqtj666.com/api/trial/draw-result?code=trxbhffc&rows=10&page=${page}`);
                     const data = await res.json();
                     if (data.code !== 0 || !data.data.length) break;
-                    
-                    // 解析当前页数据
                     const pageData = data.data.map(item => {
                         const digits = item.drawResult.split(',').filter(n => /\d/.test(n)).slice(0, 5);
+                        const digitStr = digits.join('');
+                        const period = generateTimePeriod(); // 补历史期号（用当前时间，实际可根据API时间调整）
                         const lastFourSum = digits.slice(1).map(n => parseInt(n)).reduce((a,b)=>a+b, 0);
                         const validateRes = validateDigits(digits);
                         return {
+                            period: period,
+                            digitStr: digitStr,
                             digits: digits.join(' '),
                             sum: lastFourSum,
-                            result: validateRes.pass ? '✅' : '❌'
+                            result: validateRes.pass ? '✅' : '❌',
+                            time: item.drawTime || new Date().toLocaleString('zh-CN')
                         };
                     });
-                    historyData = [...historyData, ...pageData];
-                    if (historyData.length >= 100) break;
+                    // 去重后添加
+                    const uniqueData = pageData.filter(item => !historyData.some(h => h.digitStr === item.digitStr));
+                    historyData = [...historyData, ...uniqueData];
+                    if (historyData.length >= MAX_HISTORY) break;
                 }
+                localStorage.setItem('drawHistory', JSON.stringify(historyData));
                 return true;
             } catch (err) {
                 console.error('历史开奖API请求失败：', err);
@@ -189,14 +303,14 @@
             }
         }
 
-        // 3. 计算后四数字的和值
+        // 4. 计算后四数字的和值
         function calcLastFourSum() {
             if (currentDigits.length < 4) return 0;
             const lastFour = currentDigits.slice(1).map(n => parseInt(n));
             return lastFour.reduce((a, b) => a + b, 0);
         }
 
-        // 4. 渲染当前开奖数字（横向）和后四和值
+        // 5. 渲染当前开奖数字（横向）和后四和值
         function renderDigitsAndSum() {
             const digitList = document.getElementById('digitList');
             digitList.innerHTML = '';
@@ -209,7 +323,7 @@
             document.getElementById('lastFourSum').textContent = calcLastFourSum();
         }
 
-        // 5. 验证数字规则
+        // 6. 验证数字规则（保留原逻辑）
         function validateDigits(digits) {
             const numArr = digits.map(n => parseInt(n));
             const sortedNums = [...numArr].sort((a, b) => a - b);
@@ -290,7 +404,7 @@
             return result;
         }
 
-        // 6. 展示验证结果
+        // 7. 展示验证结果（保留原逻辑）
         function showValidationResult(validateRes) {
             const resultIcon = document.getElementById('resultIcon');
             const triggerArea = document.getElementById('triggerArea');
@@ -322,7 +436,7 @@
             }
         }
 
-        // 7. 渲染100期历史记录
+        // 8. 渲染历史记录（时间格式期号+去重）
         function renderHistory() {
             const historyList = document.getElementById('historyList');
             if (historyData.length === 0) {
@@ -334,6 +448,7 @@
                 const div = document.createElement('div');
                 div.className = 'history-item flex justify-between items-center px-2';
                 div.innerHTML = `
+                    <span class="period-number">${item.period}</span> <!-- 时间格式期号 -->
                     <span class="font-medium">${item.digits}</span>
                     <span>和值：${item.sum}</span>
                     <span>${item.result}</span>
@@ -342,7 +457,7 @@
             });
         }
 
-        // 8. 初始化
+        // 9. 初始化+2秒自动刷新
         async function init() {
             // 同时加载最新和历史数据
             const [latestSuccess, historySuccess] = await Promise.all([
@@ -360,8 +475,19 @@
         }
         // 页面加载时初始化
         window.onload = init;
-        // 刷新按钮点击事件
+        // 手动刷新按钮点击事件
         document.getElementById('refreshBtn').addEventListener('click', init);
+        // 启动2秒自动刷新
+        setInterval(init, REFRESH_INTERVAL);
+
+        // 可选：清空历史按钮（需手动加按钮，这里给函数）
+        function clearHistory() {
+            if(confirm('确定清空1000期历史记录？')){
+                historyData = [];
+                localStorage.removeItem('drawHistory');
+                renderHistory();
+            }
+        }
     </script>
 </body>
 </html>
